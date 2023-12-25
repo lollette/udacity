@@ -6,7 +6,7 @@
 #include "../../processPointClouds.h"
 // using templates for processPointClouds so also include .cpp to help linker
 #include "../../processPointClouds.cpp"
-
+#include <math.h>
 pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData()
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -65,7 +65,7 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 {
 	std::unordered_set<int> inliersResult;
 	srand(time(NULL));
-	
+
 	// TODO: Fill in this function
 
 	// For max iterations 
@@ -76,9 +76,58 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 	// If distance is smaller than threshold count it as inlier
 
 	// Return indicies of inliers from fitted line with most inliers
-	
-	return inliersResult;
 
+	// Probability of choosing an inlier (worst case)
+	float inliersProba = 0.;
+	int nbrIteration =  maxIterations;
+	
+	//Ransac iteration
+	while(nbrIteration--)
+	{
+		// Randomly sample subset
+		std::unordered_set<int> sample;
+		while(sample.size() < 2) sample.insert(rand() % cloud->size());
+
+		// fit line
+		auto idxA = sample.begin();
+		auto idxB = idxA++;
+		
+		float coefA = cloud->points[*idxA].y - cloud->points[*idxB].y;
+		float coefB = cloud->points[*idxB].x - cloud->points[*idxA].x;
+		float coefC = (cloud->points[*idxA].x * cloud->points[*idxB].y) - (cloud->points[*idxB].x * cloud->points[*idxA].y);
+
+		// Distance
+		double distance;
+		for(size_t idx=0; idx<cloud->size();idx++)
+		{
+			if(sample.count(idx)) continue;
+			
+			distance = fabs((coefA*cloud->points[idx].x + coefB*cloud->points[idx].y + coefC) / sqrt(coefA*coefA + coefB*coefB));
+			
+			// If distance is smaller than threshold count it as inlier
+			if (distance < distanceTol) sample.insert(idx);
+		}
+
+		// Return indicies of inliers from fitted line with most inliers
+		if(sample.size() > inliersResult.size())
+		{
+			inliersResult = sample;
+
+			// Adaptive Parameter Calculation
+			float inliersRatio = (float)inliersResult.size()/ cloud->size();
+
+			if(inliersRatio > inliersProba)
+			{
+				inliersProba = inliersRatio;
+
+				// 99% chance of getting a pure-inlier sample
+				int newNbrIteration = ceil(log(1 - 0.99) / log(1 - pow(inliersProba,2)));
+				if(newNbrIteration < nbrIteration) nbrIteration = newNbrIteration;
+			}
+		}
+	}
+
+	return inliersResult;
 }
 
 int main ()
@@ -92,7 +141,7 @@ int main ()
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 0, 0);
+	std::unordered_set<int> inliers = Ransac(cloud, 50, 0.5);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());
