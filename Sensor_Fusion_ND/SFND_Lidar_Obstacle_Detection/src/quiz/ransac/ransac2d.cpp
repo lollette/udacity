@@ -1,6 +1,8 @@
 /* \author Aaron Brown */
 // Quiz on implementing simple RANSAC line fitting
 
+/* quiz solution's author : Lilia Chorfi-Belhadj */
+
 #include "../../render/render.h"
 #include <unordered_set>
 #include "../../processPointClouds.h"
