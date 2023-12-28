@@ -195,7 +195,7 @@ std::unordered_set<int> RansacPlane(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, i
 			// as mentioned in the course, The more inliers our data contains 
 			// the higher the probability of selecting inliers to fit the model to, 
 			// and the fewer iterations we need to get a high probability of selecting a good model.
-			// so I've implemented the adaptive version to update the number of iteration according to the ration of inliers.
+			// so I've implemented the adaptive version to update the number of iteration according to the ratio of inliers.
 			
 			// Adaptive Parameter Calculation
 			float inliersRatio = (float)inliersResult.size()/ cloud->size();
