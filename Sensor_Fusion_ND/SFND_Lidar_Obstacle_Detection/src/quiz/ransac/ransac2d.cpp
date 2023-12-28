@@ -7,6 +7,7 @@
 // using templates for processPointClouds so also include .cpp to help linker
 #include "../../processPointClouds.cpp"
 #include <math.h>
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData()
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -61,7 +62,8 @@ pcl::visualization::PCLVisualizer::Ptr initScene()
   	return viewer;
 }
 
-std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
+//Own implementation of RANSAC for line fitting
+std::unordered_set<int> RansacLine(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
 	std::unordered_set<int> inliersResult;
 	srand(time(NULL));
@@ -89,12 +91,13 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 		while(sample.size() < 2) sample.insert(rand() % cloud->size());
 
 		// fit line
-		auto idxA = sample.begin();
-		auto idxB = idxA++;
+		auto itr = sample.begin();
+		int idx1 = *itr;
+		int idx2 = *(++itr);
 		
-		float coefA = cloud->points[*idxA].y - cloud->points[*idxB].y;
-		float coefB = cloud->points[*idxB].x - cloud->points[*idxA].x;
-		float coefC = (cloud->points[*idxA].x * cloud->points[*idxB].y) - (cloud->points[*idxB].x * cloud->points[*idxA].y);
+		float coefA = cloud->points[idx1].y - cloud->points[idx2].y;
+		float coefB = cloud->points[idx2].x - cloud->points[idx1].x;
+		float coefC = (cloud->points[idx1].x * cloud->points[idx2].y) - (cloud->points[idx2].x * cloud->points[idx1].y);
 
 		// Distance
 		double distance;
@@ -121,12 +124,89 @@ std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int ma
 				inliersProba = inliersRatio;
 
 				// 99% chance of getting a pure-inlier sample
-				int newNbrIteration = ceil(log(1 - 0.99) / log(1 - pow(inliersProba,2)));
-				if(newNbrIteration < nbrIteration) nbrIteration = newNbrIteration;
+				nbrIteration = ceil(log(1 - 0.99) / log(1 - pow(inliersProba,2)));
 			}
 		}
 	}
+	return inliersResult;
+}
 
+//Own implementation of RANSAC for Plane fitting
+std::unordered_set<int> RansacPlane(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
+{
+	std::unordered_set<int> inliersResult;
+	srand(time(NULL));
+
+	// TODO: Fill in this function
+
+	// For max iterations 
+
+	// Randomly sample subset and fit line
+
+	// Measure distance between every point and fitted line
+	// If distance is smaller than threshold count it as inlier
+
+	// Return indicies of inliers from fitted line with most inliers
+
+	// Probability of choosing an inlier (worst case)
+	float inliersProba = 0.;
+	int nbrIteration =  maxIterations;
+	
+	//Ransac iteration
+	while(nbrIteration--)
+	{
+		// Randomly sample subset
+		std::unordered_set<int> sample;
+		while(sample.size() < 3) sample.insert(rand() % cloud->size());
+
+		// fit line
+		auto itr = sample.begin();
+		int idx1 = *itr;
+		int idx2 = *(++itr);
+		int idx3 = *(++itr);
+		
+		float coefA = (cloud->points[idx2].y - cloud->points[idx1].y)*(cloud->points[idx3].z - cloud->points[idx1].z)
+					-(cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].y - cloud->points[idx1].y);
+		float coefB = (cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].x - cloud->points[idx1].x)
+					-(cloud->points[idx2].x - cloud->points[idx1].x)*(cloud->points[idx3].z - cloud->points[idx1].z);
+		float coefC = (cloud->points[idx2].x - cloud->points[idx1].x)*(cloud->points[idx3].y - cloud->points[idx1].y)
+					-(cloud->points[idx2].y - cloud->points[idx1].y)*(cloud->points[idx3].x - cloud->points[idx1].x);
+		float coefD = -(coefA*cloud->points[idx1].x + coefB*cloud->points[idx1].y + coefC*cloud->points[idx1].z);
+		
+		// Distance
+		double distance;
+		for(size_t idx=0; idx<cloud->size();idx++)
+		{
+			if(sample.count(idx)) continue;
+			
+			distance = fabs((coefA*cloud->points[idx].x + coefB*cloud->points[idx].y + coefC*cloud->points[idx].z + coefD) / sqrt(coefA*coefA + coefB*coefB + coefC*coefC));
+			
+			// If distance is smaller than threshold count it as inlier
+			if (distance < distanceTol) sample.insert(idx);
+		}
+
+		// Return indicies of inliers from fitted line with most inliers
+		if(sample.size() > inliersResult.size())
+		{
+			inliersResult = sample;
+
+			// as mentioned in the course, The more inliers our data contains 
+			// the higher the probability of selecting inliers to fit the model to, 
+			// and the fewer iterations we need to get a high probability of selecting a good model.
+			// so I've implemented the adaptive version to update the number of iteration according to the ration of inliers.
+			
+			// Adaptive Parameter Calculation
+			float inliersRatio = (float)inliersResult.size()/ cloud->size();
+
+			if(inliersRatio > inliersProba)
+			{
+				inliersProba = inliersRatio;
+
+				// 99% chance of getting a pure-inlier sample
+				nbrIteration = ceil(log(1 - 0.99) / log(1 - pow(inliersProba,3)));
+			}
+		}
+	}
 	return inliersResult;
 }
 
@@ -136,12 +216,16 @@ int main ()
 	// Create viewer
 	pcl::visualization::PCLVisualizer::Ptr viewer = initScene();
 
-	// Create data
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+	// Create data 2D
+	// pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+
+	// Create data 3D
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData3D();
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 50, 0.5);
+	// std::unordered_set<int> inliers = RansacLine(cloud, 50, 0.5);
+	std::unordered_set<int> inliers = RansacPlane(cloud, 50, 0.5);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());
