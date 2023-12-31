@@ -95,6 +95,7 @@ std::unordered_set<int> RansacLine(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, in
 		int idx1 = *itr;
 		int idx2 = *(++itr);
 		
+		//Line equation: Ax + By + C = 0
 		float coefA = cloud->points[idx1].y - cloud->points[idx2].y;
 		float coefB = cloud->points[idx2].x - cloud->points[idx1].x;
 		float coefC = (cloud->points[idx1].x * cloud->points[idx2].y) - (cloud->points[idx2].x * cloud->points[idx1].y);
@@ -151,6 +152,7 @@ std::unordered_set<int> RansacPlane(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, i
 		int idx2 = *(++itr);
 		int idx3 = *(++itr);
 		
+		//Plane equation: Ax + By + Cz + D = 0
 		float coefA = (cloud->points[idx2].y - cloud->points[idx1].y)*(cloud->points[idx3].z - cloud->points[idx1].z)
 					-(cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].y - cloud->points[idx1].y);
 		float coefB = (cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].x - cloud->points[idx1].x)

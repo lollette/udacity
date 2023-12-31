@@ -55,9 +55,10 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     // PCL's RANSAC
     //I keep the call to the PCL version in order to compare execution times vs. my implementation as asked
     //but only display my segmentation
-    // ProcessPointClouds<pcl::PointXYZ> pointProcessor;
-    // std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud = pointProcessor.SegmentPlane(pointCloud, 100, 0.2);
-    
+    ProcessPointClouds<pcl::PointXYZ> pointProcessor;
+    std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud = pointProcessor.SegmentPlane(pointCloud, 100, 0.2);
+    // End TODO
+
     //OWN RANSAC
     ProcessPointClouds<pcl::PointXYZ> MyPointProcessor;
     std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> MySegmentCloud = MyPointProcessor.MySegmentPlane(pointCloud, 100, 0.2);

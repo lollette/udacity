@@ -18,7 +18,7 @@ void ProcessPointClouds<PointT>::numPoints(typename pcl::PointCloud<PointT>::Ptr
     std::cout << cloud->points.size() << std::endl;
 }
 
-
+//starter code provided by udacity, I just filled in the TODOs exercises
 template<typename PointT>
 typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes, Eigen::Vector4f minPoint, Eigen::Vector4f maxPoint)
 {
@@ -36,11 +36,11 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
 }
 
-
+//starter code provided by udacity, I just filled in the TODOs exercises
 template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
 {
-  // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
+    // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
     typename pcl::PointCloud<PointT>::Ptr obstaclePoints(new pcl::PointCloud<PointT>);
     typename pcl::PointCloud<PointT>::Ptr planePoints(new pcl::PointCloud<PointT>);
 
@@ -57,6 +57,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
     extract.filter (*obstaclePoints);
     
     std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(obstaclePoints, planePoints);
+    //End TODO
+    
     return segResult;
 }
 
@@ -86,6 +88,7 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
       std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
       
     }
+    // End TODO
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -113,13 +116,11 @@ std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(typename pcl::Po
 	// Return indicies of inliers from fitted line with most inliers
 	
     // Probability of choosing an inlier (worst case)
-	float inliersProba = 0.;
 	int nbrIteration =  maxIterations;
 	
 	//Ransac iteration
 	while(nbrIteration--)
 	{
-        std::cout<<nbrIteration<<"\n";
 		// Randomly sample subset
 		std::unordered_set<int> sample;
 		while(sample.size() < 3) sample.insert(rand() % cloud->size());
@@ -130,6 +131,8 @@ std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(typename pcl::Po
 		int idx2 = *(++itr);
 		int idx3 = *(++itr);
 		
+
+        //Plane equation: Ax + By + Cz + D = 0
 		float coefA = (cloud->points[idx2].y - cloud->points[idx1].y)*(cloud->points[idx3].z - cloud->points[idx1].z)
 					-(cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].y - cloud->points[idx1].y);
 		float coefB = (cloud->points[idx2].z - cloud->points[idx1].z)*(cloud->points[idx3].x - cloud->points[idx1].x)
@@ -151,29 +154,9 @@ std::unordered_set<int> ProcessPointClouds<PointT>::RansacPlane(typename pcl::Po
 		}
 
 		// Return indicies of inliers from fitted line with most inliers
-        std::cout<<sample.size() <<"   "<<inliersResult.size()<<"\n";
-		if(sample.size() > inliersResult.size())
-		{
-			inliersResult = sample;
-
-			// as mentioned in the course, The more inliers our data contains 
-			// the higher the probability of selecting inliers to fit the model to, 
-			// and the fewer iterations we need to get a high probability of selecting a good model.
-			// so I've implemented the adaptive version to update the number of iteration according to the ratio of inliers.
-			
-			// Adaptive Parameter Calculation
-			float inliersProba = (float)inliersResult.size()/ cloud->size();
-            std::cout<<inliersProba<<"\n";
-
-			// if(inliersRatio > inliersProba)
-			// {
-				// inliersProba = inliersRatio;
-
-				// 99% chance of getting a pure-inlier sample
-				nbrIteration = ceil(log(1 - 0.99) / log(1 - pow(inliersProba,3)));
-			// }
-		}
+		if(sample.size() > inliersResult.size()) inliersResult = sample;
 	}
+
 	return inliersResult;
 }
 
@@ -187,6 +170,16 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
     //segment the planar component from the cloud
     std::unordered_set<int> planeInliers = RansacPlane(cloud, maxIterations, distanceThreshold);
 
+    auto endTime = std::chrono::steady_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    std::cout << "plane segmentation with my own RANSAC implementation took " << elapsedTime.count() << " milliseconds" << std::endl;
+
+    if (planeInliers.size () == 0)
+    {
+      std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
+      
+    }
+
     // separate obstacles from plane
     typename pcl::PointCloud<PointT>::Ptr obstaclePoints(new pcl::PointCloud<PointT>);
     typename pcl::PointCloud<PointT>::Ptr planePoints(new pcl::PointCloud<PointT>);
@@ -199,17 +192,13 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 			obstaclePoints->points.push_back(cloud->points[idx]);
 	}
 
-    auto endTime = std::chrono::steady_clock::now();
-    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    std::cout << "plane segmentation with my own RANSAC inplementation took " << elapsedTime.count() << " milliseconds" << std::endl;
-
-    //separating point clouds
     std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(obstaclePoints, planePoints);
     return segResult;
 }
 
 // --- end of "OWN IMPLEMENTATION PLANE SEGMENTATION using RANSAC"--- //
 
+//starter code provided by udacity, I just filled in the TODOs exercises
 template<typename PointT>
 std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
 {
