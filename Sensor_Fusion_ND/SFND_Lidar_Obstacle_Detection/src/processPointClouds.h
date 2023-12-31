@@ -19,6 +19,9 @@
 #include <chrono>
 #include "render/box.h"
 
+//added lib
+#include <unordered_set>
+
 template<typename PointT>
 class ProcessPointClouds {
 public:
@@ -45,6 +48,11 @@ public:
     typename pcl::PointCloud<PointT>::Ptr loadPcd(std::string file);
 
     std::vector<boost::filesystem::path> streamPcd(std::string dataPath);
+
+    //Own functions
+    std::unordered_set<int> RansacPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol);
+    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> MySegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold);
+
   
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */

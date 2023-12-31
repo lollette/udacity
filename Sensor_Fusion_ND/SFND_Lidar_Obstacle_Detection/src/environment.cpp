@@ -34,7 +34,7 @@ std::vector<Car> initHighway(bool renderScene, pcl::visualization::PCLVisualizer
     return cars;
 }
 
-
+//starter code provided by udacity, I just filled in the TODOs exercises
 void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
     // ----------------------------------------------------
@@ -50,11 +50,19 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud = lidar->scan();
     // renderRays(viewer, lidar->position, pointCloud);
     // renderPointCloud(viewer, pointCloud, "highway", Color(255,0,0));
+    
     // TODO:: Create point processor
-    ProcessPointClouds<pcl::PointXYZ> pointProcessor;
-    std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud = pointProcessor.SegmentPlane(pointCloud, 100, 0.2);
-    renderPointCloud(viewer,segmentCloud.first,"obstCloud",Color(1,0,0));
-    renderPointCloud(viewer,segmentCloud.second,"planeCloud",Color(0,1,0));
+    // PCL's RANSAC
+    //I keep the call to the PCL version in order to compare execution times vs. my implementation as asked
+    //but only display my segmentation
+    // ProcessPointClouds<pcl::PointXYZ> pointProcessor;
+    // std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud = pointProcessor.SegmentPlane(pointCloud, 100, 0.2);
+    
+    //OWN RANSAC
+    ProcessPointClouds<pcl::PointXYZ> MyPointProcessor;
+    std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> MySegmentCloud = MyPointProcessor.MySegmentPlane(pointCloud, 100, 0.2);
+    renderPointCloud(viewer,MySegmentCloud.first,"obstCloud",Color(1,0,0));
+    renderPointCloud(viewer,MySegmentCloud.second,"planeCloud",Color(0,1,0));
 }
 
 
